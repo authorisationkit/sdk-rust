@@ -1,7 +1,17 @@
 [package]
-name = "authkit"
+name = "authorisationkit"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+authors = ["Nikita Patskov <patskovn@yahoo.com>"]
+description = "Rust SDK for the Authorisationkit API: HTTP client and JWT verifier."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/authorisationkit/sdk-rust"
+homepage = "https://github.com/authorisationkit/sdk-rust"
+documentation = "https://docs.rs/authorisationkit"
+readme = "README.md"
+keywords = ["authorisation", "auth", "oauth", "jwt", "sdk"]
+categories = ["authentication", "api-bindings"]
 
 [dependencies]
 reqwest = { version = "0.12.24", features = ["json"] }
@@ -13,4 +23,3 @@ uuid = { version = "1.11.0", features = ["v4", "serde"] }
 url = "2.4"
 urlencoding = "2"
 jsonwebtoken = "9"
-
