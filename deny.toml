@@ -1,0 +1,101 @@
+# cargo-deny configuration
+#
+# Run locally with `cargo install cargo-deny` and then `cargo deny check`.
+# CI runs the same checks via `EmbarkStudios/cargo-deny-action@v2`.
+#
+# Schema reference: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+# Check the dependency graph as it would be resolved on these targets. The
+# SDK is intended to be portable across the major desktop/server platforms.
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "aarch64-apple-darwin" },
+    { triple = "x86_64-pc-windows-msvc" },
+]
+all-features = true
+
+[output]
+feature-depth = 1
+
+# ──────────────────────────────────────────────────────────────────────────
+# Security advisories
+# ──────────────────────────────────────────────────────────────────────────
+[advisories]
+version = 2
+# `version = 2` defaults: vulnerability = "deny", unmaintained = "warn",
+# yanked = "warn", notice = "warn". Override only when we have a reason.
+yanked = "deny"
+ignore = [
+    # Add advisory ids here with a comment explaining why we accept them.
+    # Example:
+    # { id = "RUSTSEC-2023-0071", reason = "rsa timing side-channel; we don't use rsa" },
+]
+
+# ──────────────────────────────────────────────────────────────────────────
+# Licenses
+# ──────────────────────────────────────────────────────────────────────────
+[licenses]
+version = 2
+# Permissive licenses we are happy to accept. The SDK itself is dual
+# Apache-2.0 / MIT licensed, so anything strict-copyleft (GPL, LGPL, AGPL)
+# is intentionally not on this list.
+#
+# The list is intentionally kept tight: every entry below is actually
+# present in the current `--all-features` dependency tree. When a new
+# dep brings in a new license, decide deliberately whether to add it
+# rather than maintaining a broad pre-approval.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "ISC",
+    "Unicode-3.0",
+    # Linux Foundation Community Data License — permissive, similar to
+    # MIT/BSD. Pulled in by `webpki-roots`.
+    "CDLA-Permissive-2.0",
+]
+confidence-threshold = 0.93
+
+# Per-crate license clarifications. Some crates have non-standard
+# expressions or files we need to point cargo-deny at explicitly.
+[[licenses.clarify]]
+name = "ring"
+expression = "ISC AND MIT AND OpenSSL"
+license-files = [
+    { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+# ──────────────────────────────────────────────────────────────────────────
+# Bans
+# ──────────────────────────────────────────────────────────────────────────
+[bans]
+# Multiple versions of the same crate are common in transitive dep trees
+# and not worth blocking on by default; surface them as warnings so we can
+# review during dep updates.
+multiple-versions = "warn"
+# `version = "*"` is unsafe and almost always a mistake.
+wildcards = "deny"
+# Highlight the deepest path so multi-version conflicts are easy to trace.
+highlight = "all"
+# Specific crate bans go here. Empty by default.
+deny = []
+skip = []
+skip-tree = []
+
+# ──────────────────────────────────────────────────────────────────────────
+# Sources
+# ──────────────────────────────────────────────────────────────────────────
+[sources]
+# Lock the SDK to crates.io. Git dependencies are easy to slip in by
+# accident and trivially exfiltrate code review; require a config change
+# (and a PR) to add one.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -1,45 +1,106 @@
-use serde::{Deserialize, Serialize};
-use std::fmt;
-use uuid::Uuid;
+//! Data models returned by the Authorisationkit API.
 
-#[derive(Debug, Serialize, Deserialize)]
+use serde::{Deserialize, Serialize};
+
+use crate::ids::ConsumerId;
+
+/// Response returned by `/provide/register` and `/provide/login`.
+///
+/// `redirect` is the URL the SDK consumer should send the end user to in
+/// order to begin the registration/login flow; `code` is the one-time code
+/// the API has minted for that flow.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterResponse {
+    /// One-time registration/login code minted by the API.
     pub code: String,
+    /// URL to redirect the end user to.
     pub redirect: String,
 }
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+
+/// How a consumer originally registered.
+///
+/// Marked `#[non_exhaustive]` so the API adding new registration types is
+/// not a breaking change for SDK users.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum UserRegistrationTypeValue {
+    /// Registered via Google OAuth.
     Google,
+    /// Registered via plain email/password flow.
     Plain,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// A consumer (end user) record.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsumerModel {
-    pub id: Uuid,
+    /// Stable identifier for the consumer.
+    pub id: ConsumerId,
+    /// Registration source.
     pub registration_type: UserRegistrationTypeValue,
+    /// Email address.
     pub email: String,
-    pub created_at: chrono::NaiveDateTime,
+    /// Server-side creation timestamp, normalized to UTC.
+    ///
+    /// The deserializer accepts both RFC 3339 strings (`...Z` /
+    /// `...+00:00`) and naive ISO-8601 strings (no zone), assuming UTC for
+    /// the latter — this matches the historical Authorisationkit wire
+    /// format and is forward-compatible if the server starts emitting
+    /// zoned timestamps.
+    #[serde(with = "naive_or_utc_datetime")]
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    /// Whether the consumer has confirmed their email.
     pub confirmed: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Response returned by `/consumers/resend-confirmation`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResendConfirmationResponse {
+    /// Whether a fresh confirmation email was dispatched.
     pub sent: bool,
 }
 
-#[derive(Debug)]
-pub enum AuthkitError {
-    Parse(url::ParseError),
-    Request(reqwest::Error),
-}
+/// Serde helper that deserializes either an RFC 3339 timestamp or a naive
+/// ISO-8601 timestamp (assumed UTC) into a `DateTime<Utc>`. Serializes back
+/// as RFC 3339 with a `Z` suffix.
+mod naive_or_utc_datetime {
+    use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+    use serde::{Deserialize, Deserializer, Serializer};
 
-impl fmt::Display for AuthkitError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AuthkitError::Parse(err) => write!(f, "Authkit failed to parse an URL: {}", err),
-            AuthkitError::Request(err) => write!(f, "Authkit request failed: {}", err),
+    pub fn serialize<S>(dt: &DateTime<Utc>, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // RFC 3339 with Z; e.g. 2024-01-02T03:04:05Z
+        s.serialize_str(&dt.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true))
+    }
+
+    pub fn deserialize<'de, D>(d: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(d)?;
+
+        // Try the canonical RFC 3339 form first.
+        if let Ok(dt) = DateTime::parse_from_rfc3339(&s) {
+            return Ok(dt.with_timezone(&Utc));
         }
+
+        // Fall back to the naive forms the Authorisationkit server has
+        // historically emitted. Each is interpreted as UTC.
+        const NAIVE_FORMATS: &[&str] = &[
+            "%Y-%m-%dT%H:%M:%S%.f",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S%.f",
+            "%Y-%m-%d %H:%M:%S",
+        ];
+        for fmt in NAIVE_FORMATS {
+            if let Ok(ndt) = NaiveDateTime::parse_from_str(&s, fmt) {
+                return Ok(Utc.from_utc_datetime(&ndt));
+            }
+        }
+
+        Err(serde::de::Error::custom(format!(
+            "expected RFC 3339 or naive ISO-8601 datetime, got {s:?}"
+        )))
     }
 }
-
-impl std::error::Error for AuthkitError {}
