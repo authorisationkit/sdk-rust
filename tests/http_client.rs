@@ -431,3 +431,82 @@ async fn logout_consumer_accepts_session_id_newtype() {
     let session: SessionId = uuid::Uuid::nil().into();
     client.logout_consumer(session).await.expect("logout");
 }
+
+#[tokio::test]
+async fn list_consumer_grants_decodes_a_connected_client() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/oauth/grants"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([{
+            "client_id": "11111111-1111-1111-1111-111111111111",
+            "client_name": "Claude",
+            "scopes": ["email_read", "email_change"],
+            // Naive form, as the server emits it.
+            "granted_at": "2026-07-01T09:00:00",
+            "last_used_at": "2026-07-31T12:30:00"
+        }])))
+        .mount(&server)
+        .await;
+
+    let client = test_client(&server);
+    let grants = client
+        .list_consumer_grants(uuid::Uuid::nil())
+        .await
+        .expect("list_consumer_grants");
+
+    assert_eq!(grants.len(), 1);
+    assert_eq!(grants[0].client_name, "Claude");
+    assert_eq!(grants[0].scopes, vec!["email_read", "email_change"]);
+    assert!(grants[0].granted_at < grants[0].last_used_at);
+}
+
+#[tokio::test]
+async fn list_consumer_grants_handles_no_connected_clients() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/oauth/grants"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([])))
+        .mount(&server)
+        .await;
+
+    let client = test_client(&server);
+    assert!(client
+        .list_consumer_grants(uuid::Uuid::nil())
+        .await
+        .expect("list_consumer_grants")
+        .is_empty());
+}
+
+#[tokio::test]
+async fn disconnect_consumer_grant_accepts_an_empty_body() {
+    let server = MockServer::start().await;
+    Mock::given(method("DELETE"))
+        .and(path("/oauth/grants"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({})))
+        .mount(&server)
+        .await;
+
+    let client = test_client(&server);
+    client
+        .disconnect_consumer_grant(uuid::Uuid::nil(), uuid::Uuid::nil())
+        .await
+        .expect("disconnect_consumer_grant");
+}
+
+#[tokio::test]
+async fn disconnect_consumer_grant_surfaces_an_unknown_grant() {
+    let server = MockServer::start().await;
+    Mock::given(method("DELETE"))
+        .and(path("/oauth/grants"))
+        .respond_with(ResponseTemplate::new(404).set_body_json(json!({
+            "message": "No grant for this consumer and client"
+        })))
+        .mount(&server)
+        .await;
+
+    let client = test_client(&server);
+    assert!(client
+        .disconnect_consumer_grant(uuid::Uuid::nil(), uuid::Uuid::nil())
+        .await
+        .is_err());
+}

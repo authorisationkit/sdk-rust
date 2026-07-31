@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ids::ConsumerId;
+use crate::ids::{ConsumerId, OAuthClientId};
 
 /// Response returned by `/provide/register` and `/provide/login`.
 ///
@@ -28,6 +28,32 @@ pub enum UserRegistrationTypeValue {
     Google,
     /// Registered via plain email/password flow.
     Plain,
+}
+
+/// An OAuth client a consumer has connected, and what they granted it.
+///
+/// One entry per client rather than per token: re-authorizing leaves several
+/// live refresh tokens for the same client, which is an implementation detail
+/// of rotation rather than something a consumer has any use for.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthGrantModel {
+    /// The client holding the grant.
+    pub client_id: OAuthClientId,
+    /// Display name the client gave at registration. Self-declared, so treat it
+    /// as a label rather than as proof of which software is calling.
+    pub client_name: String,
+    /// Scopes the consumer granted.
+    pub scopes: Vec<String>,
+    /// When the consumer first authorized this client.
+    #[serde(with = "naive_or_utc_datetime")]
+    pub granted_at: chrono::DateTime<chrono::Utc>,
+    /// When the grant was last exchanged for an access token.
+    ///
+    /// Clients refresh roughly once per access-token lifetime, so this trails
+    /// real activity — it says "used within the last hour or so", not "used at
+    /// this instant".
+    #[serde(with = "naive_or_utc_datetime")]
+    pub last_used_at: chrono::DateTime<chrono::Utc>,
 }
 
 /// A consumer (end user) record.

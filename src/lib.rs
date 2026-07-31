@@ -12,5 +12,5 @@ pub mod models;
 
 pub use client::{Client, ClientBuilder};
 pub use error::{Error, JwtError};
-pub use ids::{ConsumerId, OrgId, SessionId};
+pub use ids::{ConsumerId, OAuthClientId, OrgId, SessionId};
 pub use jwt::{Claims, JwtVerifier, JwtVerifierBuilder};

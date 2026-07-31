@@ -16,8 +16,8 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 
 use crate::error::Error;
-use crate::ids::{ConsumerId, SessionId};
-use crate::models::{ConsumerModel, RegisterResponse, ResendConfirmationResponse};
+use crate::ids::{ConsumerId, OAuthClientId, SessionId};
+use crate::models::{ConsumerModel, OAuthGrantModel, RegisterResponse, ResendConfirmationResponse};
 
 const DEFAULT_BASE_URL: &str = "https://api.authkit.tech";
 const DEFAULT_USER_AGENT: &str = concat!("authorisationkit-rust/", env!("CARGO_PKG_VERSION"));
@@ -232,6 +232,43 @@ impl Client {
             &[("session_id", sid.as_str())],
         )
         .await
+    }
+
+    /// List the OAuth clients a consumer has connected.
+    ///
+    /// A client appears here for as long as it holds a live refresh token —
+    /// that is what lets it keep issuing itself access tokens, and deleting it
+    /// is what [`Client::disconnect_consumer_grant`] does.
+    pub async fn list_consumer_grants(
+        &self,
+        consumer_id: impl Into<ConsumerId>,
+    ) -> Result<Vec<OAuthGrantModel>, Error> {
+        let cid = consumer_id.into().to_string();
+        self.request(Method::GET, "oauth/grants", &[("consumer_id", cid.as_str())])
+            .await
+    }
+
+    /// Disconnect one client from a consumer.
+    ///
+    /// Deletes the grant, so the client can no longer obtain new access tokens.
+    /// Access tokens it already holds keep working until they expire — they are
+    /// signed JWTs that resource servers verify offline, and nothing here can
+    /// reach them. Tell users "within the hour", not "immediately".
+    pub async fn disconnect_consumer_grant(
+        &self,
+        consumer_id: impl Into<ConsumerId>,
+        client_id: impl Into<OAuthClientId>,
+    ) -> Result<(), Error> {
+        let cid = consumer_id.into().to_string();
+        let client = client_id.into().to_string();
+        let _: serde::de::IgnoredAny = self
+            .request(
+                Method::DELETE,
+                "oauth/grants",
+                &[("consumer_id", cid.as_str()), ("client_id", client.as_str())],
+            )
+            .await?;
+        Ok(())
     }
 
     /// Resend the email confirmation for a pending consumer.

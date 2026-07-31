@@ -103,6 +103,15 @@ id_newtype! {
 }
 
 id_newtype! {
+    /// Identifier for an OAuth client registered with Authorisationkit.
+    ///
+    /// `OAuthClientId` is a thin newtype around [`Uuid`]. One is minted per
+    /// dynamic client registration, so an MCP client that registers twice
+    /// appears under two ids.
+    OAuthClientId
+}
+
+id_newtype! {
     /// Identifier for an Authorisationkit organisation.
     ///
     /// `OrgId` is a thin newtype around [`Uuid`]. It appears in JWT
