@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — the HTTP client is now generated
+
+The transport layer is no longer hand-written. `build.rs` runs
+[progenitor](https://github.com/oxidecomputer/progenitor) over the vendored
+`openapi.json` at compile time, so every request method and every request and
+response type comes from the OpenAPI document. What stays hand-written is
+everything the document cannot express — the JWT verifier, and the cross-cutting
+request behaviour in the new `hooks` module.
+
+The reason is coverage as much as duplication: the hand-written client had 8 of
+the API's 19 documented operations, and none of the OAuth 2.1 authorization
+server. It now has all 19.
+
+- **Breaking:** method names are the OpenAPI operation ids, so they match the
+  other AuthKit SDKs. `register` → `get_registration_code`,
+  `login_with_redirect` → `get_login_code`; `get_consumer`,
+  `get_consumer_by_session`, `logout_consumer`, `resend_confirmation`,
+  `list_consumer_grants` keep their names. `disconnect_consumer_grant` keeps
+  its name but now takes `(client_id, consumer_id)` in the document's order.
+- **Breaking:** `Client::new(api_key)` is now `Client::with_api_key(api_key)`.
+  The generated client has its own `new(baseurl)`, which skips credential and
+  retry setup; the rename keeps the two from being confused.
+- **Breaking:** methods return `ResponseValue<T>` rather than `T`. Call
+  `.into_inner()` for the body; the wrapper also carries status and headers.
+- **Breaking:** methods return `progenitor_client::Error<ServerErrorValue>`
+  rather than `Error`. `Error` implements `From` for it, so `?` still works in
+  any function returning `Error`; an explicit `Error::from` is needed elsewhere.
+- **Breaking:** parameters are borrowed and untyped-by-newtype —
+  `get_consumer(&uuid)` rather than `get_consumer(impl Into<ConsumerId>)`.
+- **Breaking:** `ConsumerId`, `SessionId` and `OAuthClientId` are gone from the
+  `ids` module; the equivalents are generated into `types`. `OrgId` stays,
+  because it appears only in JWT claims, which the document does not describe.
+- **Breaking:** `models` and `client` modules removed. Response types live in
+  `types`; `Client` and `ClientBuilder` are re-exported at the crate root.
+- **Breaking:** `Error::Middleware` removed, `Error::InvalidRequest` added.
+- **Breaking:** `ConsumerModel::created_at` is a `String` again rather than
+  `chrono::DateTime<Utc>` — the document types it as a plain string, and the
+  generated model follows it. Adding a `format: date-time` to the server's
+  schema would restore the typed form.
+- **Breaking:** MSRV is now 1.88 (was 1.85), required by progenitor.
+- Retries moved from `reqwest-middleware`/`reqwest-retry` to progenitor's `exec`
+  hook, because the generated client holds a plain `reqwest::Client` with
+  nowhere to put a middleware stack. Behaviour is preserved except that backoff
+  no longer jitters. A 4xx other than 429 is explicitly not retried.
+- The idempotency key is now minted once per call and replayed by every retry of
+  it, rather than regenerated per attempt — which is what makes sending one
+  useful.
+- `reqwest` 0.12 → 0.13; `reqwest-middleware` and `reqwest-retry` dropped.
+- `progenitor-client` is MPL-2.0 and is a runtime dependency, so binaries
+  linking this SDK now redistribute MPL-2.0 code. See `deny.toml` for why that
+  is accepted.
+
+Two error-mapping edges are new, both consequences of generation: a status the
+document does not list arrives as `Error::Api` without a parsed message, and a
+body that does not match the documented error schema arrives as `Error::Decode`
+rather than `Error::Api`. Both are covered by tests.
+
 ### Added
 
 - Strongly-typed identifier newtypes [`ConsumerId`], [`SessionId`], and

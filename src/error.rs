@@ -54,28 +54,126 @@ pub enum Error {
     #[error("invalid configuration: {0}")]
     Config(String),
 
-    /// A retry/middleware layer wrapped around the HTTP client failed
-    /// before the request reached the server. The boxed inner error is
-    /// the original `reqwest_middleware` error; we hide its concrete type
-    /// so callers don't need to depend on `reqwest_middleware` directly.
-    #[error("middleware error: {0}")]
-    Middleware(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    /// The request was rejected before it was sent — a path parameter that
+    /// cannot be rendered into a URL, or a hook that refused it.
+    #[error("invalid request: {0}")]
+    InvalidRequest(String),
 
     /// JWT verification failed. See [`JwtError`] for the specific failure.
     #[error(transparent)]
     Jwt(#[from] JwtError),
 }
 
-impl From<reqwest_middleware::Error> for Error {
-    fn from(err: reqwest_middleware::Error) -> Self {
-        // Best-effort: unwrap the inner reqwest::Error so callers can match
-        // on `Error::Transport`. Anything else (custom middleware error,
-        // future variants) bubbles up as `Error::Middleware`.
+/// Flattens a generated client error into [`Error`].
+///
+/// The generated methods return `progenitor_client::Error<ServerErrorValue>`,
+/// which distinguishes eight cases that callers of this SDK do not need to tell
+/// apart — what they want to know is whether the API refused them, whether the
+/// network failed, or whether the response did not match the schema.
+///
+/// The API's own `{ "error": { "code", "reason" } }` body is where the message
+/// comes from; the `code` inside it is ignored in favour of the HTTP status,
+/// which is the one the caller can act on.
+impl<E: serde::Serialize> From<progenitor_client::Error<E>> for Error {
+    fn from(err: progenitor_client::Error<E>) -> Self {
+        use progenitor_client::Error as P;
+
         match err {
-            reqwest_middleware::Error::Reqwest(inner) => Error::Transport(inner),
-            other => Error::Middleware(Box::new(other)),
+            P::InvalidRequest(message) | P::Custom(message) => Error::InvalidRequest(message),
+
+            P::CommunicationError(source)
+            | P::InvalidUpgrade(source)
+            | P::ResponseBodyError(source) => Error::Transport(source),
+
+            P::InvalidResponsePayload(_, source) => Error::Decode { source },
+
+            P::ErrorResponse(response) => {
+                let request_id = response
+                    .headers()
+                    .get(crate::hooks::REQUEST_ID_HEADER)
+                    .and_then(|value| value.to_str().ok())
+                    .map(str::to_owned);
+                let status = response.status();
+                let body = serde_json::to_string(response.as_ref()).ok();
+                let message = body
+                    .as_deref()
+                    .and_then(parse_api_error_message)
+                    .unwrap_or_else(|| fallback_message(status));
+
+                Error::Api {
+                    status,
+                    request_id,
+                    message,
+                    body,
+                }
+            }
+
+            // Not described by the spec, so there is no typed body to read and
+            // no request id worth trusting — report the status and move on.
+            P::UnexpectedResponse(response) => Error::Api {
+                status: response.status(),
+                request_id: response
+                    .headers()
+                    .get(crate::hooks::REQUEST_ID_HEADER)
+                    .and_then(|value| value.to_str().ok())
+                    .map(str::to_owned),
+                message: format!(
+                    "undocumented response: {}",
+                    fallback_message(response.status())
+                ),
+                body: None,
+            },
         }
     }
+}
+
+fn fallback_message(status: StatusCode) -> String {
+    status
+        .canonical_reason()
+        .unwrap_or("unknown error")
+        .to_owned()
+}
+
+/// Best-effort extraction of a human-readable message from an API error body.
+///
+/// Recognises AuthKit's `{ "error": { "reason" } }` shape, the flatter
+/// `{ "message" }`, and the OAuth `{ "error_description" }` form used by the
+/// token endpoint — which is a different shape from the rest of the API
+/// because RFC 6749 specifies it.
+fn parse_api_error_message(body: &str) -> Option<String> {
+    #[derive(serde::Deserialize)]
+    struct Nested {
+        reason: Option<String>,
+    }
+    #[derive(serde::Deserialize)]
+    struct Body {
+        #[serde(default)]
+        error: Option<serde_json::Value>,
+        #[serde(default)]
+        message: Option<String>,
+        #[serde(default)]
+        error_description: Option<String>,
+    }
+
+    let parsed: Body = serde_json::from_str(body).ok()?;
+
+    let nested = parsed.error.as_ref().and_then(|value| {
+        serde_json::from_value::<Nested>(value.clone())
+            .ok()
+            .and_then(|n| n.reason)
+    });
+    let flat = parsed
+        .error
+        .as_ref()
+        .and_then(|value| value.as_str().map(str::to_owned));
+
+    [nested, parsed.message, parsed.error_description, flat]
+        .into_iter()
+        .flatten()
+        // A blank reason is not a message. Returning it would put an empty
+        // string where the caller expects something to show a user, so fall
+        // through to the status's canonical reason instead.
+        .find(|candidate| !candidate.trim().is_empty())
 }
 
 /// Errors produced by [`crate::JwtVerifier`].

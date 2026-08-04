@@ -13,8 +13,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .ok_or("usage: register <redirect_url>")?;
 
-    let client = Client::new(api_key)?;
-    let registration = client.register(&redirect_url).await?;
+    let client = Client::with_api_key(api_key)?;
+    let registration = client
+        .get_registration_code(&redirect_url)
+        .await?
+        .into_inner();
 
     println!("code:     {}", registration.code);
     println!("redirect: {}", registration.redirect);

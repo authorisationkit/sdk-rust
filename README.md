@@ -1,21 +1,23 @@
 # authorisationkit
 
-[![Crates.io](https://img.shields.io/crates/v/authorisationkit.svg)](https://crates.io/crates/authorisationkit)
-[![Docs.rs](https://docs.rs/authorisationkit/badge.svg)](https://docs.rs/authorisationkit)
-
 Rust SDK for the [Authorisationkit](https://api.authkit.tech) API.
 
-Provides:
+Two halves, drawn along the line of what an API description can express:
 
-- A typed HTTP client for the Authorisationkit consumer API
-  (register, login, fetch consumer, logout, resend confirmation), with
-  default-on retries, idempotency-key generation on writes, request-id
-  propagation in errors, and an injectable `reqwest::Client` for tests
-  and middleware.
-- A JWT verifier that bootstraps from an OAuth Authorization Server
-  well-known URL, fetches and caches JWKS, single-flights concurrent
-  refreshes, applies clock-skew leeway, and surfaces failures as typed
-  errors.
+- **A generated HTTP client**, built from AuthKit's OpenAPI document at compile
+  time. Every request method and every request and response type comes from
+  `openapi.json`, so the SDK cannot fall behind the API or invent an endpoint it
+  does not have. All nineteen documented operations are covered, including the
+  OAuth 2.1 authorization server.
+- **A hand-written JWT verifier**, because none of what it does is describable in
+  OpenAPI: bootstrapping from an Authorization Server well-known URL, fetching
+  and caching JWKS, single-flighting concurrent refreshes, applying clock-skew
+  leeway, and reporting failures as typed errors.
+
+Request behaviour that is likewise not in the document — the API key on every
+request, an idempotency key on every write, retries on transient failures,
+request-id capture on errors — is hand-written too, in `src/hooks.rs`, and
+attaches to the generated client through progenitor's `ClientHooks`.
 
 ## Installation
 
@@ -38,16 +40,22 @@ use authorisationkit::Client;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new(std::env::var("AUTHKIT_KEY")?)?;
+    let client = Client::with_api_key(std::env::var("AUTHKIT_KEY")?)?;
 
     let registration = client
-        .register("https://my-app.example.com/auth/callback")
-        .await?;
+        .get_registration_code("https://my-app.example.com/auth/callback")
+        .await?
+        .into_inner();
 
     println!("redirect user to: {}", registration.redirect);
     Ok(())
 }
 ```
+
+Generated methods return a `ResponseValue<T>`, which carries the status and
+headers alongside the body; `.into_inner()` takes the body. Method names are the
+operation ids from the OpenAPI document, so they match the other AuthKit SDKs —
+`get_registration_code` here is `getRegistrationCode` in the JavaScript one.
 
 For non-default configuration (timeout, custom user agent, retry tuning,
 injected `reqwest::Client`, alternate base URL):
@@ -88,44 +96,76 @@ The verifier:
 - Caches AS metadata and JWKS for 10 minutes (configurable via
   `JwtVerifier::builder().jwks_ttl(...)`).
 - Refetches JWKS eagerly on a cache miss for an unknown `kid`.
-- Coalesces concurrent verifications during a refresh so a cold cache
-  produces a single in-flight HTTP request, not a thundering herd.
+- Coalesces concurrent verifications during a refresh so a cold cache produces a
+  single in-flight HTTP request, not a thundering herd.
 - Applies a 60-second clock-skew leeway by default (configurable via
   `leeway_secs`).
 
+Access tokens are verified offline, so this needs no `Client` and no API key.
+
 ## Retries and idempotency
 
-By default the client retries idempotent requests up to 3 times on 5xx,
-429, and transient transport errors using exponential backoff with jitter,
-honoring `Retry-After`. Tune via `max_retries`, `min_retry_backoff`,
-`max_retry_backoff`, or opt out entirely with `disable_retries()`.
+By default the client retries up to 3 times on 5xx, 429, and transient transport
+errors, with backoff doubling from 1 second to a 30-second ceiling and
+`Retry-After` honoured when the server sends one. A 4xx other than 429 is not
+retried — it is the answer, not a hiccup. Tune via `max_retries`,
+`min_retry_backoff`, `max_retry_backoff`, or opt out with `disable_retries()`.
 
-`POST` requests automatically include a fresh `Idempotency-Key` UUID so
-retries (whether by the SDK's middleware or by network-level retries
-upstream) cannot cause the server to perform the same write twice.
+Writes carry a fresh `Idempotency-Key`, minted once per call and replayed by
+every retry of it, so a retried write is recognisable to the server as the write
+it already saw.
 
 ## Error handling
 
-All fallible operations return `authorisationkit::Error`. API failures
-come through `Error::Api { status, request_id, message, body }` — quote
-the `request_id` when reporting issues. JWT verification failures use
-`authorisationkit::JwtError` with specific variants (`Expired`,
-`InvalidSignature`, `UnknownKid`, …) so callers can react programmatically.
+Generated methods return `progenitor_client::Error`, which converts into
+`authorisationkit::Error` — so `?` does the right thing in any function
+returning the latter. API failures arrive as
+`Error::Api { status, request_id, message, body }`; quote the `request_id` when
+reporting issues.
 
 ```rust,no_run
 use authorisationkit::{Client, Error};
 
 async fn fetch(client: &Client, id: uuid::Uuid) -> Result<(), Error> {
-    match client.get_consumer(id).await {
-        Ok(consumer) => println!("{consumer:?}"),
-        Err(Error::Api { status, request_id, message, .. }) => {
-            eprintln!("authkit returned {status} ({request_id:?}): {message}");
-        }
-        Err(other) => return Err(other),
+    match client.get_consumer(&id).await {
+        Ok(consumer) => println!("{:?}", consumer.into_inner()),
+        Err(err) => match Error::from(err) {
+            Error::Api { status, request_id, message, .. } => {
+                eprintln!("authkit returned {status} ({request_id:?}): {message}");
+            }
+            other => return Err(other),
+        },
     }
     Ok(())
 }
 ```
+
+Two edges are worth knowing, both consequences of generation:
+
+- A response status the document does not list arrives as `Error::Api` with the
+  status but no parsed message — progenitor hands back the raw response, and
+  reading its body needs an `await` a `From` conversion cannot make.
+- A body that does not match the documented error schema arrives as
+  `Error::Decode`, because the status is discarded before the conversion sees
+  it. A proxy's HTML error page lands here.
+
+JWT verification failures use `authorisationkit::JwtError` with specific variants
+(`Expired`, `InvalidSignature`, `UnknownKid`, …) so callers can react
+programmatically.
+
+## Regenerating the client
+
+The OpenAPI document is vendored at `openapi.json` and read by `build.rs`. To
+pick up API changes:
+
+```sh
+curl -s https://api.authkit.tech/openapi.json -o openapi.json
+cargo test
+```
+
+Generated code goes to `OUT_DIR` rather than into the repository, so it cannot
+drift from the document beside it. Formatting uses `prettyplease`, so no nightly
+toolchain is needed.
 
 ## License
 

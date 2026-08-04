@@ -1,0 +1,1731 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "app",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/provide/register": {
+      "get": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Serves the registration form for consumers.\n\nThe `redirect_url` parameter specifies where authkit should redirect after registration. It must be in the organization's allowed redirect URLs list.",
+        "operationId": "getRegistrationCode",
+        "parameters": [
+          {
+            "name": "redirect_url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvideConsumerRegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/provide/login": {
+      "get": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Serves the login form for consumers.\n\nThe `redirect_url` parameter specifies where authkit should redirect after login. It must be in the organization's allowed redirect URLs list.",
+        "operationId": "getLoginCode",
+        "parameters": [
+          {
+            "name": "redirect_url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvideConsumerLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/provide/info": {
+      "get": {
+        "tags": [
+          "Frontend"
+        ],
+        "description": "Returns information about the organization for the registration form",
+        "operationId": "getOrganizationInfo",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/provide/preview_info": {
+      "get": {
+        "tags": [
+          "Frontend"
+        ],
+        "description": "Returns information about the organization for the registration form",
+        "operationId": "getOrganizationInfoPreview",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consumers/new": {
+      "post": {
+        "tags": [
+          "Frontend"
+        ],
+        "description": "Registers a new consumer",
+        "operationId": "registerConsumer",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterConsumerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterConsumerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consumers/login": {
+      "post": {
+        "tags": [
+          "Frontend"
+        ],
+        "description": "Logs in an existing consumer",
+        "operationId": "loginConsumer",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginConsumerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginConsumerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consumers/logout": {
+      "post": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Logs out a consumer by destroying their session",
+        "operationId": "logoutConsumer",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/consumer": {
+      "get": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Get a consumer by ID",
+        "operationId": "getConsumer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumerModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/consumer/session": {
+      "get": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Get a consumer by their session ID",
+        "operationId": "getConsumerBySession",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumerModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/consumers/resend-confirmation": {
+      "post": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Resend a confirmation email to a consumer",
+        "operationId": "resendConfirmation",
+        "parameters": [
+          {
+            "name": "consumer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendConfirmationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/oauth/grants": {
+      "get": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Lists the OAuth clients a consumer has connected.\n\nA live refresh token is what makes a client \"connected\": it is the thing that lets the client keep issuing itself access tokens, and deleting it is what disconnecting means. Expired ones are left out — they grant nothing and the consumer cannot act on them.",
+        "operationId": "listConsumerGrants",
+        "parameters": [
+          {
+            "name": "consumer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GrantResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Disconnects a client from a consumer by deleting the grant behind it.\n\nThis removes every live refresh token for the pair, so the client can no longer issue itself new access tokens. Access tokens already issued stay valid until they expire — they are signed JWTs that resource servers verify offline, and nothing here can reach them. Callers should say so rather than promise an immediate cutoff.",
+        "operationId": "disconnectConsumerGrant",
+        "parameters": [
+          {
+            "name": "consumer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteGrantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/consumers/forgot-password": {
+      "post": {
+        "tags": [
+          "Frontend"
+        ],
+        "description": "Initiates a password reset for a consumer. Always returns success to prevent email enumeration.",
+        "operationId": "forgotPassword",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consumers/reset-password": {
+      "post": {
+        "tags": [
+          "Frontend"
+        ],
+        "description": "Resets a consumer's password using a valid reset token.",
+        "operationId": "resetPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-authorization-server/{org_id}": {
+      "get": {
+        "tags": [
+          "oauth_server"
+        ],
+        "description": "OAuth 2.1 authorization server metadata.\n\nThe discovery document for one organization: a client fetches this to learn where to send the user, where to exchange the code, and which scopes it may ask for. Everything this document points at is itself described in this spec.\n\nUnauthenticated — discovery has to work before a client exists.",
+        "operationId": "getAuthorizationServerMetadata",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "tags": [
+          "oauth_server"
+        ],
+        "description": "Public keys for verifying access tokens.\n\nA resource server fetches this to verify AuthKit's access tokens offline — the tokens are ES256-signed JWTs and are never introspected against this server. Cache the response and re-fetch on an unrecognised `kid`.\n\nInstance-wide, not org-scoped: one signing key serves every organization, and the token's `iss` claim is what identifies the organization it was issued for.\n\nUnauthenticated.",
+        "operationId": "getJwks",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwksResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{org_id}/oauth/register": {
+      "post": {
+        "tags": [
+          "oauth_server"
+        ],
+        "description": "Registers an OAuth client (RFC 7591).\n\nOpen registration: no initial access token, and any caller may register. This is what lets an MCP client discover the server and enrol itself without a human provisioning it first.\n\nThe client is public — it receives no secret and authenticates at the token endpoint with PKCE alone. Registration is not scoped to a consumer; it says a client exists, not that anyone has authorized it.",
+        "operationId": "registerOauthClient",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterClientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{org_id}/oauth/authorize": {
+      "get": {
+        "tags": [
+          "oauth_server"
+        ],
+        "description": "OAuth 2.1 authorization endpoint.\n\nSend the user here in a browser to begin an authorization. The client is validated, the `redirect_uri` and requested scopes are checked, a pending authorization is stored, and the user is redirected to AuthKit's own login page. Once they sign in, AuthKit completes the flow internally and redirects back to `redirect_uri` with `code` and `state`.\n\nThere is no consent screen: signing in grants the requested scopes. Treat every registered client as first-party until that changes.\n\nThis is a browser endpoint, not an API call — the success case is a redirect, and the response is only ever consumed by a user agent following it. Errors currently render an error page rather than redirecting `error` back to the client.",
+        "operationId": "authorize",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "response_type",
+            "in": "query",
+            "description": "The response type requested. OAuth 2.1 leaves only the authorization code flow, so `code` is the sole accepted value.",
+            "required": true,
+            "schema": {
+              "description": "The response type requested. OAuth 2.1 leaves only the authorization code flow, so `code` is the sole accepted value.",
+              "type": "string",
+              "enum": [
+                "code"
+              ]
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "description": "The client identifier returned by the registration endpoint.",
+            "required": true,
+            "schema": {
+              "description": "The client identifier returned by the registration endpoint.",
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "description": "Where to deliver the authorization code. Must equal the URI registered for this client exactly; a mismatch is refused rather than redirected to.",
+            "required": true,
+            "schema": {
+              "description": "Where to deliver the authorization code. Must equal the URI registered for this client exactly; a mismatch is refused rather than redirected to.",
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Opaque value echoed back on the redirect. Use it to defend against CSRF and to re-associate the callback with the request that started it.",
+            "schema": {
+              "description": "Opaque value echoed back on the redirect. Use it to defend against CSRF and to re-associate the callback with the request that started it.",
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "description": "The PKCE challenge: the base64url-encoded SHA-256 of the verifier that will be sent to the token endpoint. Required — this server has no client secrets, so PKCE is the only thing binding the code to its client.",
+            "required": true,
+            "schema": {
+              "description": "The PKCE challenge: the base64url-encoded SHA-256 of the verifier that will be sent to the token endpoint. Required — this server has no client secrets, so PKCE is the only thing binding the code to its client.",
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "description": "Defaults to `S256`, and `S256` is the only accepted value. `plain` is rejected.",
+            "schema": {
+              "description": "Defaults to `S256`, and `S256` is the only accepted value. `plain` is rejected.",
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "description": "Space-delimited scopes to request. Every scope must be one this organization has defined — see `scopes_supported` in the discovery document — or the request is refused. Omitting it requests no scopes.",
+            "schema": {
+              "description": "Space-delimited scopes to request. Every scope must be one this organization has defined — see `scopes_supported` in the discovery document — or the request is refused. Omitting it requests no scopes.",
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect to AuthKit's login page to authenticate the user.",
+            "headers": {
+              "Location": {
+                "description": "Where to send the user next. On success this is AuthKit's login page; the authorization code is delivered to the client's own `redirect_uri` later, once the user has signed in.",
+                "required": true,
+                "content": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{org_id}/oauth/token": {
+      "post": {
+        "tags": [
+          "oauth_server"
+        ],
+        "description": "OAuth 2.1 token endpoint.\n\nExchanges an authorization code for an access token, or spends a refresh token for a new one. The grant is chosen by `grant_type`.\n\nBoth grants are scoped to the organization in the path: a code or refresh token issued for one organization cannot be redeemed against another, and the `iss` claim of the token returned is derived from the grant rather than from this path.\n\nUnauthenticated in the client-credentials sense — clients are public and prove themselves with PKCE (`authorization_code`) or by holding the refresh token.",
+        "operationId": "exchangeToken",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProvideConsumerRegisterResponse": {
+        "type": "object",
+        "required": [
+          "code",
+          "redirect"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ConsumerCodeID"
+          },
+          "redirect": {
+            "type": "string"
+          }
+        }
+      },
+      "ConsumerCodeID": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "ServerErrorValue": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/RepresentedError"
+          }
+        }
+      },
+      "RepresentedError": {
+        "type": "object",
+        "required": [
+          "code",
+          "reason"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0.0
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "ProvideConsumerLoginResponse": {
+        "type": "object",
+        "required": [
+          "code",
+          "redirect"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ConsumerCodeID"
+          },
+          "redirect": {
+            "type": "string"
+          }
+        }
+      },
+      "UserInfoResponse": {
+        "type": "object",
+        "required": [
+          "oauth_providers",
+          "organization_name"
+        ],
+        "properties": {
+          "organization_name": {
+            "type": "string"
+          },
+          "oauth_providers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RegisterConsumerResponse": {
+        "type": "object",
+        "required": [
+          "consumer_id",
+          "email",
+          "redirect_url",
+          "requires_confirmation",
+          "session_id"
+        ],
+        "properties": {
+          "consumer_id": {
+            "$ref": "#/components/schemas/ConsumerID"
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/ConsumerSessionID"
+          },
+          "email": {
+            "type": "string"
+          },
+          "redirect_url": {
+            "type": "string"
+          },
+          "requires_confirmation": {
+            "description": "Whether following `redirect_url` would be refused until this consumer confirms their email. Callers should show a \"check your email\" prompt instead of navigating.",
+            "type": "boolean"
+          }
+        }
+      },
+      "ConsumerID": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "ConsumerSessionID": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "RegisterConsumerRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginConsumerResponse": {
+        "type": "object",
+        "required": [
+          "consumer_id",
+          "email",
+          "redirect_url",
+          "requires_confirmation",
+          "session_id"
+        ],
+        "properties": {
+          "consumer_id": {
+            "$ref": "#/components/schemas/ConsumerID"
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/ConsumerSessionID"
+          },
+          "email": {
+            "type": "string"
+          },
+          "redirect_url": {
+            "type": "string"
+          },
+          "requires_confirmation": {
+            "description": "Whether following `redirect_url` would be refused until this consumer confirms their email. Callers should show a \"check your email\" prompt instead of navigating.",
+            "type": "boolean"
+          }
+        }
+      },
+      "LoginConsumerRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LogoutResponse": {
+        "type": "object"
+      },
+      "ConsumerModel": {
+        "type": "object",
+        "required": [
+          "confirmed",
+          "created_at",
+          "email",
+          "id",
+          "registration_type"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ConsumerID"
+          },
+          "registration_type": {
+            "$ref": "#/components/schemas/UserRegistrationTypeValue"
+          },
+          "email": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "partial-date-time"
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserRegistrationTypeValue": {
+        "type": "string",
+        "enum": [
+          "Google",
+          "Plain"
+        ]
+      },
+      "ResendConfirmationResponse": {
+        "type": "object",
+        "required": [
+          "sent"
+        ],
+        "properties": {
+          "sent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GrantResponse": {
+        "description": "One client a consumer has connected, as the consumer would recognise it.",
+        "type": "object",
+        "required": [
+          "client_id",
+          "client_name",
+          "granted_at",
+          "last_used_at",
+          "scopes"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "scopes": {
+            "description": "Scopes the consumer granted, split from the space-delimited stored form.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "granted_at": {
+            "description": "When the consumer first authorized this client.",
+            "type": "string"
+          },
+          "last_used_at": {
+            "description": "When the grant was last exchanged for an access token. Clients refresh about hourly, so this trails real activity by up to the access-token lifetime.",
+            "type": "string"
+          }
+        }
+      },
+      "DeleteGrantResponse": {
+        "type": "object"
+      },
+      "ForgotPasswordResponse": {
+        "type": "object",
+        "required": [
+          "sent"
+        ],
+        "properties": {
+          "sent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetPasswordResponse": {
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthMetadata": {
+        "description": "Authorization server metadata, as defined by RFC 8414.\n\nEvery endpoint named here is org-scoped except `jwks_uri`: one signing key serves the whole instance, while issuer and grants are per-organization.",
+        "type": "object",
+        "required": [
+          "authorization_endpoint",
+          "client_id_metadata_document_supported",
+          "code_challenge_methods_supported",
+          "grant_types_supported",
+          "issuer",
+          "jwks_uri",
+          "registration_endpoint",
+          "response_types_supported",
+          "scopes_supported",
+          "token_endpoint",
+          "token_endpoint_auth_methods_supported"
+        ],
+        "properties": {
+          "issuer": {
+            "description": "Identifier this server uses in the `iss` claim of the tokens it signs, and the value a resource server must match against. Org-scoped: `<api_url>/<org_id>`.",
+            "type": "string"
+          },
+          "authorization_endpoint": {
+            "description": "Where to send the user to authorize a client.",
+            "type": "string"
+          },
+          "token_endpoint": {
+            "description": "Where to exchange an authorization code, or a refresh token, for an access token.",
+            "type": "string"
+          },
+          "registration_endpoint": {
+            "description": "Where a client registers itself (RFC 7591). Open — no initial access token required.",
+            "type": "string"
+          },
+          "jwks_uri": {
+            "description": "Where to fetch the public keys that verify this server's access tokens. Instance-wide, not org-scoped.",
+            "type": "string"
+          },
+          "response_types_supported": {
+            "description": "Always `[\"code\"]`. OAuth 2.1 removes the implicit flow.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grant_types_supported": {
+            "description": "Always `[\"authorization_code\", \"refresh_token\"]`.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "code_challenge_methods_supported": {
+            "description": "Always `[\"S256\"]`. PKCE is required, and plain challenges are rejected.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "token_endpoint_auth_methods_supported": {
+            "description": "Always `[\"none\"]`. Clients are public and authenticate by PKCE, not a secret.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes_supported": {
+            "description": "The scopes this organization has defined. A request for anything outside this list is rejected at the authorization endpoint.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "client_id_metadata_document_supported": {
+            "description": "Always `false`.",
+            "type": "boolean"
+          }
+        }
+      },
+      "JwksResponse": {
+        "description": "A JWK Set (RFC 7517).",
+        "type": "object",
+        "required": [
+          "keys"
+        ],
+        "properties": {
+          "keys": {
+            "description": "The keys that may have signed a live access token. Verifiers should select by `kid` rather than assuming a single entry, so that key rotation does not break them.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Jwk"
+            }
+          }
+        }
+      },
+      "Jwk": {
+        "description": "A single public key in JWK form (RFC 7517).",
+        "type": "object",
+        "required": [
+          "alg",
+          "crv",
+          "kid",
+          "kty",
+          "use",
+          "x",
+          "y"
+        ],
+        "properties": {
+          "kty": {
+            "description": "Key type. Always `EC`.",
+            "type": "string"
+          },
+          "crv": {
+            "description": "Curve. Always `P-256`.",
+            "type": "string"
+          },
+          "x": {
+            "description": "Base64url-encoded x coordinate of the public point.",
+            "type": "string"
+          },
+          "y": {
+            "description": "Base64url-encoded y coordinate of the public point.",
+            "type": "string"
+          },
+          "kid": {
+            "description": "Key identifier. Matches the `kid` header of tokens signed with this key, and is how a verifier picks the right entry from `keys`.",
+            "type": "string"
+          },
+          "use": {
+            "description": "Intended use. Always `sig`.",
+            "type": "string"
+          },
+          "alg": {
+            "description": "Signing algorithm. Always `ES256`.",
+            "type": "string"
+          }
+        }
+      },
+      "RegisterClientResponse": {
+        "type": "object",
+        "required": [
+          "client_id",
+          "client_name",
+          "redirect_uris",
+          "token_endpoint_auth_method"
+        ],
+        "properties": {
+          "client_id": {
+            "description": "The client's identifier. Pass this as `client_id` at the authorization endpoint. There is no client secret.",
+            "type": "string"
+          },
+          "client_name": {
+            "description": "Echoed from the request.",
+            "type": "string"
+          },
+          "redirect_uris": {
+            "description": "Echoed from the request verbatim, including any entries beyond the first — which is the only one that was registered. Treat the first entry, not this array, as the registered value.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "token_endpoint_auth_method": {
+            "description": "Always `none`. The client is public and proves itself with PKCE.",
+            "type": "string"
+          }
+        }
+      },
+      "RegisterClientRequest": {
+        "type": "object",
+        "required": [
+          "client_name"
+        ],
+        "properties": {
+          "client_name": {
+            "description": "Human-readable name for the client. Shown to the consumer when they review the clients they have connected.",
+            "type": "string"
+          },
+          "redirect_uris": {
+            "description": "Redirect URIs the client may use.\n\n**Only the first entry is registered.** The authorization endpoint compares `redirect_uri` against that one value and rejects anything else, so send the URI you intend to use first. Omitting the field, or sending an empty array, registers an empty redirect URI — which no authorization request can then match.",
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in",
+          "refresh_token",
+          "token_type"
+        ],
+        "properties": {
+          "access_token": {
+            "description": "An ES256-signed JWT. Verify it offline against the keys at `/.well-known/jwks.json`; it is not stored server-side and there is no introspection endpoint. Carries `iss`, `sub` (the consumer), `org_id`, `scope`, `aud`, `exp`, `iat` and `jti`.",
+            "type": "string"
+          },
+          "token_type": {
+            "description": "Always `Bearer`.",
+            "type": "string"
+          },
+          "expires_in": {
+            "description": "Lifetime of `access_token` in seconds. Currently 3600.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "refresh_token": {
+            "description": "An opaque token, valid 30 days, exchangeable for a new access token at this endpoint. Rotated on every use — store this value in place of the one just spent.",
+            "type": "string"
+          }
+        }
+      },
+      "TokenRequest": {
+        "description": "Form body for the token endpoint. Sent as `application/x-www-form-urlencoded`.\n\nWhich fields are required depends on `grant_type`; the schema marks as optional every field that one of the two grants does without.",
+        "type": "object",
+        "required": [
+          "grant_type"
+        ],
+        "properties": {
+          "grant_type": {
+            "description": "`authorization_code` or `refresh_token`. Anything else is rejected.",
+            "type": "string"
+          },
+          "code": {
+            "description": "The authorization code. Required for `authorization_code`; single-use, and short-lived.",
+            "type": "string",
+            "nullable": true
+          },
+          "redirect_uri": {
+            "description": "Required for `authorization_code`. Must equal the `redirect_uri` sent to the authorization endpoint, or the exchange is refused.",
+            "type": "string",
+            "nullable": true
+          },
+          "client_id": {
+            "description": "The registered client identifier. Accepted but not currently checked against the code's own client — PKCE is what binds the exchange to the client that started it.",
+            "type": "string",
+            "nullable": true
+          },
+          "code_verifier": {
+            "description": "Required for `authorization_code`. The PKCE verifier whose S256 hash must equal the `code_challenge` sent to the authorization endpoint.",
+            "type": "string",
+            "nullable": true
+          },
+          "refresh_token": {
+            "description": "Required for `refresh_token`. Rotated on every use: the response carries a new one and the presented token stops working.",
+            "type": "string",
+            "nullable": true
+          },
+          "resource": {
+            "description": "Accepted and ignored. RFC 8707 resource indicators are not implemented.",
+            "type": "string",
+            "nullable": true
+          },
+          "scope": {
+            "description": "Accepted and ignored. The issued token carries the scope the consumer granted at the authorization endpoint; it cannot be narrowed or widened here.",
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "api_key": {
+        "description": "API key in the `api_key` header",
+        "type": "apiKey",
+        "name": "api_key",
+        "in": "header"
+      }
+    }
+  }
+}

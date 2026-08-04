@@ -1,20 +1,20 @@
 //! Strongly-typed identifiers used by the Authorisationkit API.
 //!
-//! Each id wraps a [`uuid::Uuid`] in a distinct newtype so the compiler
-//! catches mistakes like passing a session id where the API expects a
-//! consumer id. The wire format is unchanged — newtypes are
-//! `#[serde(transparent)]`, so a `ConsumerId` serializes and
-//! deserializes as the same UUID string a raw `Uuid` would.
+//! The ids the HTTP API speaks are generated from the OpenAPI document and
+//! live in [`crate::types`]. What remains here is [`OrgId`], which the API
+//! never carries in a request or response — it arrives inside a *token*, as
+//! the `org_id` claim on [`crate::Claims`], so nothing in the document
+//! describes it.
+//!
+//! The wire format is unchanged: the newtype is `#[serde(transparent)]`, so an
+//! `OrgId` serializes and deserializes as the same UUID string a raw `Uuid`
+//! would.
 //!
 //! # Construction
 //!
-//! - From a [`Uuid`]: `let id: ConsumerId = my_uuid.into();` or
-//!   [`ConsumerId::new(my_uuid)`](ConsumerId::new).
-//! - From a string: `let id: ConsumerId = "00000000-0000-0000-0000-000000000000".parse()?;`
-//!
-//! All client methods accept `impl Into<ConsumerId>` (or `impl
-//! Into<SessionId>`), so you can keep passing raw `Uuid` values where
-//! that's more convenient — the conversion is free.
+//! - From a [`Uuid`]: `let id: OrgId = my_uuid.into();` or
+//!   [`OrgId::new(my_uuid)`](OrgId::new).
+//! - From a string: `let id: OrgId = "00000000-0000-0000-0000-000000000000".parse()?;`
 
 use std::fmt;
 use std::str::FromStr;
@@ -87,37 +87,11 @@ macro_rules! id_newtype {
 }
 
 id_newtype! {
-    /// Stable identifier for a consumer (end user) record.
-    ///
-    /// `ConsumerId` is a thin newtype around [`Uuid`] that prevents
-    /// accidental mix-ups with other id types like [`SessionId`].
-    ConsumerId
-}
-
-id_newtype! {
-    /// Identifier for an active consumer session.
-    ///
-    /// `SessionId` is a thin newtype around [`Uuid`] that prevents
-    /// accidental mix-ups with other id types like [`ConsumerId`].
-    SessionId
-}
-
-id_newtype! {
-    /// Identifier for an OAuth client registered with Authorisationkit.
-    ///
-    /// `OAuthClientId` is a thin newtype around [`Uuid`]. One is minted per
-    /// dynamic client registration, so an MCP client that registers twice
-    /// appears under two ids.
-    OAuthClientId
-}
-
-id_newtype! {
     /// Identifier for an Authorisationkit organisation.
     ///
-    /// `OrgId` is a thin newtype around [`Uuid`]. It appears in JWT
-    /// claims (`org_id`) and in the OAuth Authorization Server
-    /// well-known URL path. Server-issued `org_id` values are always
-    /// UUIDs.
+    /// `OrgId` is a thin newtype around [`Uuid`]. It appears in JWT claims
+    /// (`org_id`) and in the OAuth Authorization Server well-known URL path.
+    /// Server-issued `org_id` values are always UUIDs.
     OrgId
 }
 
@@ -130,69 +104,52 @@ mod tests {
 
     #[test]
     fn from_uuid_and_back() {
-        let id = ConsumerId::from(NIL);
+        let id = OrgId::from(NIL);
         assert_eq!(id.into_uuid(), NIL);
         assert_eq!(*id.as_uuid(), NIL);
     }
 
     #[test]
     fn new_constructor_is_const() {
-        const ID: ConsumerId = ConsumerId::new(Uuid::nil());
+        const ID: OrgId = OrgId::new(Uuid::nil());
         assert_eq!(*ID.as_uuid(), NIL);
     }
 
     #[test]
     fn parse_from_string() {
-        let id: ConsumerId = NIL_STR.parse().expect("parse");
+        let id: OrgId = NIL_STR.parse().expect("parse");
         assert_eq!(*id.as_uuid(), NIL);
     }
 
     #[test]
     fn parse_from_string_rejects_garbage() {
-        let err = "not-a-uuid".parse::<ConsumerId>().unwrap_err();
+        let err = "not-a-uuid".parse::<OrgId>().unwrap_err();
         // uuid::Error doesn't expose a stable kind; just check it's an error.
         assert!(err.to_string().contains("uuid") || !err.to_string().is_empty());
     }
 
     #[test]
     fn display_matches_uuid_format() {
-        let id = ConsumerId::new(NIL);
+        let id = OrgId::new(NIL);
         assert_eq!(id.to_string(), NIL_STR);
     }
 
     #[test]
     fn debug_includes_type_name() {
-        let id = ConsumerId::new(NIL);
+        let id = OrgId::new(NIL);
         let dbg = format!("{id:?}");
-        assert!(dbg.starts_with("ConsumerId("));
+        assert!(dbg.starts_with("OrgId("));
         assert!(dbg.contains(NIL_STR));
     }
 
     #[test]
     fn serde_is_transparent() {
-        let id = ConsumerId::new(NIL);
+        let id = OrgId::new(NIL);
         let json = serde_json::to_string(&id).expect("serialize");
         // Same shape as serializing the inner Uuid directly.
         assert_eq!(json, format!("\"{NIL_STR}\""));
 
-        let parsed: ConsumerId = serde_json::from_str(&json).expect("deserialize");
+        let parsed: OrgId = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed, id);
-    }
-
-    #[test]
-    fn consumer_and_session_ids_are_distinct_types() {
-        // This test exists primarily to document the type-safety property
-        // — if anyone ever changes the macro to share a type, this would
-        // catch it. The actual compile-time check is that the following
-        // line would NOT compile if uncommented:
-        //
-        //     let _: ConsumerId = SessionId::new(Uuid::nil());
-        //
-        // Compile-time tests are awkward in Rust without trybuild, so we
-        // assert the type names instead.
-        let c = ConsumerId::new(NIL);
-        let s = SessionId::new(NIL);
-        assert!(format!("{c:?}").starts_with("ConsumerId"));
-        assert!(format!("{s:?}").starts_with("SessionId"));
     }
 }

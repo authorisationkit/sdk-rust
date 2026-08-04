@@ -59,6 +59,23 @@ allow = [
     # Linux Foundation Community Data License — permissive, similar to
     # MIT/BSD. Pulled in by `webpki-roots`.
     "CDLA-Permissive-2.0",
+    # Permissive, attribution-only. Pulled in by `foldhash`.
+    "Zlib",
+    # Weak, *file-level* copyleft: modifying an MPL-2.0 file obliges you to
+    # publish that file under MPL-2.0, but depending on one imposes nothing on
+    # this crate's own Apache-2.0/MIT terms.
+    #
+    # Every MPL-2.0 crate in the tree is progenitor, which generates this SDK's
+    # HTTP client. Three of the four (`progenitor`, `progenitor-impl`,
+    # `progenitor-macro`) are build-dependencies and do not ship. The fourth,
+    # `progenitor-client`, is a runtime dependency and does — so anyone
+    # redistributing a binary linking this SDK redistributes MPL-2.0 code. That
+    # is a normal use of the licence, and the obligation only bites on modifying
+    # progenitor's own source files, which nothing here does.
+    #
+    # Recorded rather than waved through: it arrived with the move to a
+    # generated client and is not visible from the outside.
+    "MPL-2.0",
 ]
 confidence-threshold = 0.93
 
