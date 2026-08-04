@@ -159,9 +159,20 @@ The OpenAPI document is vendored at `openapi.json` and read by `build.rs`. To
 pick up API changes:
 
 ```sh
-curl -s https://api.authkit.tech/openapi.json -o openapi.json
-cargo test
+./scripts/update-spec.sh                                  # production
+./scripts/update-spec.sh http://localhost:8099/openapi.json   # a local server
 ```
+
+The script downloads the document, checks it before letting it replace the
+working copy, reports which operations appeared or vanished, then regenerates
+and runs the tests. The checks matter more than they look: this file is the sole
+source of the crate's entire public API, so a truncated download or a server
+that has not been redeployed would quietly rewrite every method signature. In
+particular it refuses a document whose operation ids look derived from the
+server's Rust module paths, which is what an un-deployed backend serves.
+
+Nothing else is needed — `build.rs` declares `rerun-if-changed` on the spec, so
+an ordinary `cargo build` regenerates the client whenever the document changes.
 
 Generated code goes to `OUT_DIR` rather than into the repository, so it cannot
 drift from the document beside it. Formatting uses `prettyplease`, so no nightly
