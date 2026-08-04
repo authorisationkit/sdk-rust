@@ -39,7 +39,7 @@ fn sample_consumer() -> serde_json::Value {
         "id": "00000000-0000-0000-0000-000000000000",
         "registration_type": "Plain",
         "email": "test@example.com",
-        "created_at": "2024-01-02T03:04:05",
+        "created_at": "2024-01-02T03:04:05Z",
         "confirmed": true,
     })
 }
@@ -94,6 +94,10 @@ async fn generated_response_types_decode() {
 
     assert_eq!(consumer.email, "test@example.com");
     assert!(consumer.confirmed);
+    // A real instant, not a string: the spec says `format: date-time`, so the
+    // generated model is a `DateTime<Utc>` and a value without an offset is
+    // rejected rather than passed through as text.
+    assert_eq!(consumer.created_at.timestamp(), 1_704_164_645);
 }
 
 /// The OAuth endpoints had no Rust coverage at all before generation. This is

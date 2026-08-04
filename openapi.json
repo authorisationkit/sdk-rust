@@ -1347,8 +1347,9 @@
             "type": "string"
           },
           "created_at": {
+            "description": "UTC, RFC 3339.\n\nThe column is a naive `timestamp`, so the instant is only conventionally UTC in the database. Asserting that here rather than passing the naive value through is what lets the schema say `format: date-time` truthfully — a value with no offset is not RFC 3339, and a client generated from a spec that claimed otherwise would fail to parse it.",
             "type": "string",
-            "format": "partial-date-time"
+            "format": "date-time"
           },
           "confirmed": {
             "type": "boolean"
@@ -1399,12 +1400,14 @@
             }
           },
           "granted_at": {
-            "description": "When the consumer first authorized this client.",
-            "type": "string"
+            "description": "When the consumer first authorized this client. UTC, RFC 3339.",
+            "type": "string",
+            "format": "date-time"
           },
           "last_used_at": {
-            "description": "When the grant was last exchanged for an access token. Clients refresh about hourly, so this trails real activity by up to the access-token lifetime.",
-            "type": "string"
+            "description": "When the grant was last exchanged for an access token. Clients refresh about hourly, so this trails real activity by up to the access-token lifetime. UTC, RFC 3339.",
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
