@@ -159,8 +159,8 @@ The OpenAPI document is vendored at `openapi.json` and read by `build.rs`. To
 pick up API changes:
 
 ```sh
-./scripts/update-spec.sh                                  # production
-./scripts/update-spec.sh http://localhost:8099/openapi.json   # a local server
+./scripts/update-spec.py                                      # production
+./scripts/update-spec.py http://localhost:8099/openapi.json   # a local server
 ```
 
 The script downloads the document, checks it before letting it replace the
