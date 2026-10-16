@@ -163,6 +163,21 @@ rather than `Error::Api`. Both are covered by tests.
 
 ### Fixed
 
+- **OAuth errors decode again.** AuthKit's token and client-registration
+  endpoints now answer refusals in the shape RFC 6749 §5.2 and RFC 7591 §3.2.2
+  prescribe — `{ "error": "invalid_grant", "error_description": "…" }` — instead
+  of the rest of the API's `{ "error": { "code", "reason" } }`. Against the
+  previous `openapi.json`, every refusal from `exchange_token` and
+  `register_oauth_client` failed to decode and arrived as `Error::Decode`, with
+  the status and reason lost. With the refreshed document they arrive as
+  `Error::Api` carrying the status and the `error_description`; the OAuth code
+  (`invalid_grant`, `invalid_redirect_uri`, …) is in `body`.
+- **Breaking (narrow):** those two methods now return
+  `progenitor_client::Error<OAuthErrorBody>` rather than
+  `progenitor_client::Error<ServerErrorValue>`. Code that converts with `?` or
+  `Error::from` is unaffected.
+- `openapi.json` refreshed from production, which also brings in
+  `resume_consumer_session`.
 - Removed `eprintln!` debug logging in `login_with_redirect` that printed
   full request bodies (including credentials) to stderr. Errors now
   bubble up as typed `Error` values; verbose tracing is available via

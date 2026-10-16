@@ -533,6 +533,94 @@ async fn undocumented_status_still_reports_its_status() {
     }
 }
 
+/// The OAuth endpoints answer errors in the shape RFC 6749 §5.2 and RFC 7591
+/// §3.2.2 prescribe — `{ "error": "<code>", "error_description": "<text>" }` —
+/// not the rest of the API's `{ "error": { "code", "reason" } }`.
+///
+/// While the vendored document still described the old shape for these two
+/// endpoints, every refusal from them failed to decode and surfaced as
+/// [`Error::Decode`], hiding the status and the reason.
+#[tokio::test]
+async fn oauth_token_error_carries_status_and_description() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/org-1/oauth/token"))
+        .respond_with(ResponseTemplate::new(400).set_body_json(json!({
+            "error": "invalid_grant",
+            "error_description": "Unknown or already used authorization code or refresh token",
+        })))
+        .mount(&server)
+        .await;
+
+    let request: authorisationkit::types::TokenRequest = serde_json::from_value(json!({
+        "grant_type": "refresh_token",
+        "refresh_token": "spent",
+    }))
+    .expect("token request");
+
+    let err = Error::from(
+        test_client(&server)
+            .exchange_token("org-1", &request)
+            .await
+            .expect_err("expected error"),
+    );
+
+    match err {
+        Error::Api {
+            status,
+            message,
+            body,
+            ..
+        } => {
+            assert_eq!(status, reqwest::StatusCode::BAD_REQUEST);
+            assert_eq!(
+                message,
+                "Unknown or already used authorization code or refresh token"
+            );
+            let body: serde_json::Value =
+                serde_json::from_str(&body.expect("body is kept")).expect("body is JSON");
+            assert_eq!(body["error"], "invalid_grant");
+        }
+        other => panic!("expected Error::Api, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn oauth_registration_error_carries_status_and_description() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/org-1/oauth/register"))
+        .respond_with(ResponseTemplate::new(400).set_body_json(json!({
+            "error": "invalid_redirect_uri",
+            "error_description": "redirect_uri \"not a url\" is not an absolute URI",
+        })))
+        .mount(&server)
+        .await;
+
+    let request: authorisationkit::types::RegisterClientRequest = serde_json::from_value(json!({
+        "client_name": "x",
+        "redirect_uris": ["not a url"],
+    }))
+    .expect("registration request");
+
+    let err = Error::from(
+        test_client(&server)
+            .register_oauth_client("org-1", &request)
+            .await
+            .expect_err("expected error"),
+    );
+
+    match err {
+        Error::Api {
+            status, message, ..
+        } => {
+            assert_eq!(status, reqwest::StatusCode::BAD_REQUEST);
+            assert_eq!(message, "redirect_uri \"not a url\" is not an absolute URI");
+        }
+        other => panic!("expected Error::Api, got {other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn request_id_propagated_into_error() {
     let server = MockServer::start().await;

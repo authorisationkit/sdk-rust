@@ -345,6 +345,63 @@
         }
       }
     },
+    "/consumers/resume": {
+      "post": {
+        "tags": [
+          "Frontend"
+        ],
+        "description": "Completes a login flow from a session the browser already holds, without asking for credentials again.\n\nThis is what makes an AuthKit custom domain worth configuring. The hosted login page lives on the organization's own hostname, so the cookie set when a consumer last signed in is a first-party cookie that comes back on the next visit. Given a fresh login `code`, this exchanges that session for the same redirect `loginConsumer` would have produced.\n\nThe session is taken from the `consumer_session` header or cookie by the request guard, which also rejects expired or revoked sessions and slides the expiry window on success.",
+        "operationId": "resumeConsumerSession",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeConsumerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "consumer_session": []
+          }
+        ]
+      }
+    },
     "/consumers/logout": {
       "post": {
         "tags": [
@@ -898,7 +955,7 @@
         "tags": [
           "oauth_server"
         ],
-        "description": "Registers an OAuth client (RFC 7591).\n\nOpen registration: no initial access token, and any caller may register. This is what lets an MCP client discover the server and enrol itself without a human provisioning it first.\n\nThe client is public — it receives no secret and authenticates at the token endpoint with PKCE alone. Registration is not scoped to a consumer; it says a client exists, not that anyone has authorized it.",
+        "description": "Registers an OAuth client (RFC 7591).\n\nOpen registration: no initial access token, and any caller may register. This is what lets an MCP client discover the server and enrol itself without a human provisioning it first.\n\nThe client is public — it receives no secret and authenticates at the token endpoint with PKCE alone. Registration is not scoped to a consumer; it says a client exists, not that anyone has authorized it.\n\nErrors follow RFC 7591 §3.2.2: `{\"error\": \"<code>\", \"error_description\": \"<text>\"}` with `invalid_redirect_uri` or `invalid_client_metadata`.",
         "operationId": "registerOauthClient",
         "parameters": [
           {
@@ -932,21 +989,21 @@
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "The request was refused. `error` says why, using the codes of RFC 6749 §5.2 or RFC 7591 §3.2.2.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerErrorValue"
+                  "$ref": "#/components/schemas/OAuthErrorBody"
                 }
               }
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal error, reported as `server_error`.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerErrorValue"
+                  "$ref": "#/components/schemas/OAuthErrorBody"
                 }
               }
             }
@@ -1091,7 +1148,7 @@
         "tags": [
           "oauth_server"
         ],
-        "description": "OAuth 2.1 token endpoint.\n\nExchanges an authorization code for an access token, or spends a refresh token for a new one. The grant is chosen by `grant_type`.\n\nBoth grants are scoped to the organization in the path: a code or refresh token issued for one organization cannot be redeemed against another, and the `iss` claim of the token returned is derived from the grant rather than from this path.\n\nUnauthenticated in the client-credentials sense — clients are public and prove themselves with PKCE (`authorization_code`) or by holding the refresh token.",
+        "description": "OAuth 2.1 token endpoint.\n\nExchanges an authorization code for an access token, or spends a refresh token for a new one. The grant is chosen by `grant_type`.\n\nBoth grants are scoped to the organization in the path: a code or refresh token issued for one organization cannot be redeemed against another, and the `iss` claim of the token returned is derived from the grant rather than from this path.\n\nUnauthenticated in the client-credentials sense — clients are public and prove themselves with PKCE (`authorization_code`) or by holding the refresh token.\n\nErrors follow RFC 6749 §5.2: `{\"error\": \"<code>\", \"error_description\": \"<text>\"}` with `invalid_request`, `invalid_grant` or `unsupported_grant_type`. A spent, expired or unknown refresh token is `invalid_grant` — the signal to send the user through authorization again.",
         "operationId": "exchangeToken",
         "parameters": [
           {
@@ -1125,21 +1182,21 @@
             }
           },
           "400": {
-            "description": "Bad request",
+            "description": "The request was refused. `error` says why, using the codes of RFC 6749 §5.2 or RFC 7591 §3.2.2.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerErrorValue"
+                  "$ref": "#/components/schemas/OAuthErrorBody"
                 }
               }
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal error, reported as `server_error`.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerErrorValue"
+                  "$ref": "#/components/schemas/OAuthErrorBody"
                 }
               }
             }
@@ -1320,6 +1377,30 @@
             "type": "string"
           },
           "password": {
+            "type": "string"
+          }
+        }
+      },
+      "ResumeConsumerResponse": {
+        "description": "Note the absence of `loginConsumer`'s `requires_confirmation`. The only redirect that turns an unconfirmed consumer away is AuthKit's own OAuth callback, and this endpoint refuses to resume into one at all; every other redirect belongs to the organization, which is free to accept an unconfirmed consumer. So there is never a \"confirm first\" answer left to give.",
+        "type": "object",
+        "required": [
+          "consumer_id",
+          "email",
+          "redirect_url",
+          "session_id"
+        ],
+        "properties": {
+          "consumer_id": {
+            "$ref": "#/components/schemas/ConsumerID"
+          },
+          "session_id": {
+            "$ref": "#/components/schemas/ConsumerSessionID"
+          },
+          "email": {
+            "type": "string"
+          },
+          "redirect_url": {
             "type": "string"
           }
         }
@@ -1625,6 +1706,74 @@
           }
         }
       },
+      "OAuthErrorBody": {
+        "type": "object",
+        "required": [
+          "error",
+          "error_description"
+        ],
+        "properties": {
+          "error": {
+            "description": "Machine-readable error code. Branch on this, not on the description.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OAuthErrorCode"
+              }
+            ]
+          },
+          "error_description": {
+            "description": "Human-readable explanation, for logs and developers.",
+            "type": "string"
+          }
+        }
+      },
+      "OAuthErrorCode": {
+        "description": "The `error` codes these two endpoints answer with.",
+        "oneOf": [
+          {
+            "description": "A required parameter is missing, repeated or malformed (RFC 6749 §5.2).",
+            "type": "string",
+            "enum": [
+              "invalid_request"
+            ]
+          },
+          {
+            "description": "The code or refresh token is unknown, spent, expired, or was issued for a different `redirect_uri` or PKCE verifier (RFC 6749 §5.2).",
+            "type": "string",
+            "enum": [
+              "invalid_grant"
+            ]
+          },
+          {
+            "description": "`grant_type` is neither `authorization_code` nor `refresh_token` (RFC 6749 §5.2).",
+            "type": "string",
+            "enum": [
+              "unsupported_grant_type"
+            ]
+          },
+          {
+            "description": "A redirect URI in a registration is missing, not absolute, or not allowed (RFC 7591 §3.2.2).",
+            "type": "string",
+            "enum": [
+              "invalid_redirect_uri"
+            ]
+          },
+          {
+            "description": "A registration field other than `redirect_uris` is invalid (RFC 7591 §3.2.2).",
+            "type": "string",
+            "enum": [
+              "invalid_client_metadata"
+            ]
+          },
+          {
+            "description": "Something failed on our side; retrying may help.",
+            "type": "string",
+            "enum": [
+              "server_error"
+            ]
+          }
+        ]
+      },
       "RegisterClientRequest": {
         "type": "object",
         "required": [
@@ -1636,7 +1785,7 @@
             "type": "string"
           },
           "redirect_uris": {
-            "description": "Redirect URIs the client may use.\n\n**Only the first entry is registered.** The authorization endpoint compares `redirect_uri` against that one value and rejects anything else, so send the URI you intend to use first. Omitting the field, or sending an empty array, registers an empty redirect URI — which no authorization request can then match.",
+            "description": "Redirect URIs the client may use. At least one is required, and every entry must be an absolute URI without a fragment: `https`, `http` on a loopback host (`localhost`, `127.0.0.1`, `[::1]`), or a private-use scheme such as `myapp://callback`. Anything else is refused with `invalid_redirect_uri`.\n\n**Only the first entry is registered.** The authorization endpoint compares `redirect_uri` against that one value and rejects anything else, so send the URI you intend to use first.",
             "default": [],
             "type": "array",
             "items": {
@@ -1727,6 +1876,12 @@
         "description": "API key in the `api_key` header",
         "type": "apiKey",
         "name": "api_key",
+        "in": "header"
+      },
+      "consumer_session": {
+        "description": "Consumer session token in the `consumer_session` header",
+        "type": "apiKey",
+        "name": "consumer_session",
         "in": "header"
       }
     }
