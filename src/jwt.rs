@@ -50,6 +50,11 @@ pub struct Claims {
     pub aud: Option<String>,
     /// Authorisationkit organisation id. Always a UUID on the wire.
     pub org_id: OrgId,
+    /// The OAuth client the token was issued to (`client_id`, RFC 9068), so a resource server
+    /// can tell one connected client of a consumer from another. `None` on tokens issued
+    /// before AuthKit added the claim; those expire within the hour.
+    #[serde(default)]
+    pub client_id: Option<String>,
     /// Space-delimited scope.
     pub scope: String,
     /// Expiry time, seconds since the Unix epoch.

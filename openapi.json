@@ -754,6 +754,62 @@
         ]
       }
     },
+    "/oauth/handoffs/claim": {
+      "post": {
+        "tags": [
+          "Backend"
+        ],
+        "description": "Claims a post-authorize hand-off, once.\n\nWith a post-authorize URL set (`POST /org_config/post_authorize_url`), a consumer who authorizes an OAuth client is sent to `<url>?handoff=<id>` instead of back to the client. Claim that id here to learn who authorized which client and where the browser goes next. A hand-off can be claimed once, within 10 minutes, and only with an API key of its own organization; anything else is 404.",
+        "operationId": "claimOauthHandoff",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimHandoffResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerErrorValue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
     "/consumers/forgot-password": {
       "post": {
         "tags": [
@@ -1495,6 +1551,41 @@
       "DeleteGrantResponse": {
         "type": "object"
       },
+      "ClaimHandoffResponse": {
+        "description": "A consumer's authorization of an OAuth client, handed to the organization's own page.",
+        "type": "object",
+        "required": [
+          "client_id",
+          "client_name",
+          "consumer_id",
+          "redirect",
+          "redirect_host"
+        ],
+        "properties": {
+          "consumer_id": {
+            "description": "The consumer who signed in and authorized the client.",
+            "type": "string",
+            "format": "uuid"
+          },
+          "client_id": {
+            "description": "The client they authorized; the `client_id` claim of the tokens it will get.",
+            "type": "string",
+            "format": "uuid"
+          },
+          "client_name": {
+            "description": "The client's name as it registered itself. Registration is open, so this is the client's own claim: show it with `redirect_host`.",
+            "type": "string"
+          },
+          "redirect_host": {
+            "description": "The host of the client's redirect URI.",
+            "type": "string"
+          },
+          "redirect": {
+            "description": "Where to send the browser to finish: the client's redirect URI carrying the authorization code, or AuthKit's page that makes that hop for a client on the consumer's own machine. The code expires 10 minutes after the consumer signed in.",
+            "type": "string"
+          }
+        }
+      },
       "ForgotPasswordResponse": {
         "type": "object",
         "required": [
@@ -1804,7 +1895,7 @@
         ],
         "properties": {
           "access_token": {
-            "description": "An ES256-signed JWT. Verify it offline against the keys at `/.well-known/jwks.json`; it is not stored server-side and there is no introspection endpoint. Carries `iss`, `sub` (the consumer), `org_id`, `scope`, `aud`, `exp`, `iat` and `jti`.",
+            "description": "An ES256-signed JWT. Verify it offline against the keys at `/.well-known/jwks.json`; it is not stored server-side and there is no introspection endpoint. Carries `iss`, `sub` (the consumer), `org_id`, `client_id` (the client it was issued to), `scope`, `aud`, `exp`, `iat` and `jti`.",
             "type": "string"
           },
           "token_type": {
@@ -1844,7 +1935,7 @@
             "nullable": true
           },
           "client_id": {
-            "description": "The registered client identifier. Accepted but not currently checked against the code's own client — PKCE is what binds the exchange to the client that started it.",
+            "description": "The registered client identifier. When sent, it must be the client the code or refresh token was issued to, or the request is refused with `invalid_grant`. PKCE is still what binds a code exchange to the client that started it.",
             "type": "string",
             "nullable": true
           },

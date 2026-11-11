@@ -339,3 +339,40 @@ async fn malformed_token_returns_invalid_header_error() {
         other => panic!("expected JwtError::InvalidHeader, got {other:?}"),
     }
 }
+
+fn claims_json(client_id: Option<&str>) -> serde_json::Value {
+    let mut claims = json!({
+        "iss": "https://api.authkit.tech/11111111-1111-1111-1111-111111111111",
+        "sub": "33333333-3333-3333-3333-333333333333",
+        "org_id": "11111111-1111-1111-1111-111111111111",
+        "scope": "email_read",
+        "exp": 2_000_000_000_i64,
+        "iat": 1_900_000_000_i64,
+        "jti": "jti-1",
+    });
+    if let Some(client_id) = client_id {
+        claims["client_id"] = json!(client_id);
+    }
+    claims
+}
+
+/// Tokens name the OAuth client they were issued to, so a resource server can tell a
+/// consumer's connected clients apart.
+#[test]
+fn claims_carry_the_client_id() {
+    let claims: authorisationkit::Claims =
+        serde_json::from_value(claims_json(Some("44444444-4444-4444-4444-444444444444")))
+            .expect("claims with client_id parse");
+    assert_eq!(
+        claims.client_id.as_deref(),
+        Some("44444444-4444-4444-4444-444444444444")
+    );
+}
+
+/// Tokens issued before AuthKit added the claim still verify; they just don't say.
+#[test]
+fn claims_without_a_client_id_still_parse() {
+    let claims: authorisationkit::Claims =
+        serde_json::from_value(claims_json(None)).expect("claims without client_id parse");
+    assert_eq!(claims.client_id, None);
+}

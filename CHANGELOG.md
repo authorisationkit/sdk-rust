@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — post-authorize hand-offs and the client in tokens
+
+- `Claims::client_id`: the OAuth client a token was issued to (RFC 9068), so a
+  resource server can tell a consumer's connected clients apart. `None` for
+  tokens issued before AuthKit added it.
+- `claim_oauth_handoff(id)`: claims a post-authorize hand-off once, with the
+  organization's API key. With a post-authorize URL set in AuthKit, a consumer
+  who authorizes an OAuth client is sent to `<url>?handoff=<id>` instead of back
+  to the client; the claim says which consumer authorized which client and gives
+  the URL that finishes the flow.
+
 ### Changed — the HTTP client is now generated
 
 The transport layer is no longer hand-written. `build.rs` runs
